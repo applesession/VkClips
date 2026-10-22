@@ -17,7 +17,10 @@ sys.path.insert(0, str(ROOT_DIR))
 from config.config import (
     TEMP_DIR,
     LOGS_DIR,
-    VK_API_VERSION,
+    VK_CLIENT_ID,
+    LOADER_PAUSE_MIN,
+    LOADER_PAUSE_MAX,
+    SLEEP_LOADER,
 )
 from core.db import (
     init_dbs,
@@ -41,11 +44,6 @@ from core.account_guard import (
     DAILY_LIMIT,
     BLOCK_DAYS,
 )
-
-# ---------- НАСТРОЙКИ ----------
-VK_CLIENT_ID = 6287487
-PAUSE_MIN = 600        # 10 минут
-PAUSE_MAX = 1600       # ~27 минут
 
 # ---------- LOGGING ----------
 LOG_FILE = LOGS_DIR / "loader.log"
@@ -440,8 +438,8 @@ def main():
 
         video = get_next_video()
         if not video:
-            logger.info("No videos in queue. Waiting 60 seconds...")
-            time.sleep(60)
+            logger.info(f"No videos in queue. Waiting {SLEEP_LOADER} seconds...")
+            time.sleep(SLEEP_LOADER)
             continue
 
         video_id = video["id"]
@@ -465,7 +463,7 @@ def main():
         group_token = get_group_token(group_id)
         if not group_token:
             logger.error(f"No token for group {group_id}. Skipping...")
-            time.sleep(60)
+            time.sleep(SLEEP_LOADER)
             continue
 
         output_path = TEMP_DIR / f"{video_id}.mp4"
@@ -525,8 +523,8 @@ def main():
         logger.info(f"Done: {video_id} -> group {group_id}")
         clean_temp_force()
 
-        # ---- 4. Случайная пауза 600–1600 сек ----
-        pause = random.randint(PAUSE_MIN, PAUSE_MAX)
+        # ---- 4. Случайная пауза из конфигурации ----
+        pause = random.randint(LOADER_PAUSE_MIN, LOADER_PAUSE_MAX)
         logger.info(f"Sleeping {pause} sec (~{pause//60} min)...")
         time.sleep(pause)
 

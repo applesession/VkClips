@@ -6,12 +6,10 @@
 Приоритет токенов:
   1. VK_GROUP_TOKEN  (сообщество) — шлёт от имени бота, from_group=1
   2. VK_ACCESS_TOKEN (наш user)  — fallback
-  3. VK_USER_TOKEN   (внешний)   — fallback
 
 Получатель — VK_ALERT_PEER_ID (или VK_ADMIN_ID).
 """
 
-import os
 import time
 import random
 import logging
@@ -19,9 +17,9 @@ import threading
 from typing import Optional, List, Tuple
 
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
+from config.config import (
+    VK_ACCESS_TOKEN, VK_GROUP_TOKEN, VK_GROUP_ID, VK_ALERT_PEER_ID,
+)
 
 logger = logging.getLogger("notifier")
 
@@ -37,7 +35,7 @@ _working_token_name: Optional[str] = None
 
 
 def _get_peer_id() -> Optional[int]:
-    raw = os.getenv("VK_ALERT_PEER_ID") or os.getenv("VK_ADMIN_ID")
+    raw = VK_ALERT_PEER_ID
     if not raw:
         return None
     try:
@@ -48,20 +46,16 @@ def _get_peer_id() -> Optional[int]:
 
 def _candidates() -> List[Tuple[str, str, bool, Optional[int]]]:
     """Список (name, token, from_group, group_id) в порядке приоритета."""
-    gtok = (os.getenv("VK_GROUP_TOKEN") or "").strip()
-    gid_raw = (os.getenv("VK_GROUP_ID") or "").strip()
+    gtok = VK_GROUP_TOKEN
+    gid_raw = VK_GROUP_ID
     gid = int(gid_raw) if gid_raw.isdigit() else None
-    atok = (os.getenv("VK_ACCESS_TOKEN") or "").strip()
-    utok = (os.getenv("VK_USER_TOKEN") or "").strip()
+    atok = VK_ACCESS_TOKEN
 
     pool = []
     if gtok:
         pool.append(("VK_GROUP_TOKEN", gtok, True, gid))
     if atok and atok != gtok:
         pool.append(("VK_ACCESS_TOKEN", atok, False, None))
-    if utok and utok not in (gtok, atok):
-        pool.append(("VK_USER_TOKEN", utok, False, None))
-
     if _working_token_name:
         pool.sort(key=lambda x: 0 if x[0] == _working_token_name else 1)
     return pool

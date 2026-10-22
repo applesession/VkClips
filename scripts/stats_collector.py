@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import os
 import time
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -12,9 +11,6 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))

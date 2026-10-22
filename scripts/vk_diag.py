@@ -8,15 +8,15 @@
   - LongPoll сервер для VK_GROUP_TOKEN
 """
 
-import os
 import sys
 import requests
 from pathlib import Path
-from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-load_dotenv(ROOT / ".env")
+from config.config import (
+    VK_ADMIN_ID, VK_ALERT_PEER_ID, VK_GROUP_ID, VK_GROUP_TOKEN, VK_ACCESS_TOKEN,
+)
 
 V = "5.199"
 API = "https://api.vk.com/method/"
@@ -95,31 +95,28 @@ def test_group_token(token, group_id, peer_id):
 
 
 def main():
-    admin_raw = os.getenv("VK_ADMIN_ID", "")
+    admin_raw = VK_ADMIN_ID
     if not admin_raw.isdigit():
         print("❌ VK_ADMIN_ID не задан"); return
     admin_id = int(admin_raw)
 
-    peer_raw = os.getenv("VK_ALERT_PEER_ID") or admin_raw
-    peer_id = int(peer_raw)
+    peer_id = int(VK_ALERT_PEER_ID) if VK_ALERT_PEER_ID.isdigit() else admin_id
 
-    gid_raw = os.getenv("VK_GROUP_ID", "")
+    gid_raw = VK_GROUP_ID
 
     print(f"VK_ADMIN_ID       = {admin_id}")
     print(f"VK_ALERT_PEER_ID  = {peer_id}")
     print(f"VK_GROUP_ID       = {gid_raw or '(не задан)'}")
-    print(f"VK_GROUP_TOKEN:   {'есть' if os.getenv('VK_GROUP_TOKEN') else 'НЕТ'}")
-    print(f"VK_ACCESS_TOKEN:  {'есть' if os.getenv('VK_ACCESS_TOKEN') else 'нет'}")
-    print(f"VK_USER_TOKEN:    {'есть' if os.getenv('VK_USER_TOKEN') else 'нет'}")
+    print(f"VK_GROUP_TOKEN:   {'есть' if VK_GROUP_TOKEN else 'НЕТ'}")
+    print(f"VK_ACCESS_TOKEN:  {'есть' if VK_ACCESS_TOKEN else 'нет'}")
 
     if gid_raw.isdigit():
-        test_group_token((os.getenv("VK_GROUP_TOKEN") or "").strip(),
+        test_group_token(VK_GROUP_TOKEN,
                          int(gid_raw), peer_id)
     else:
         print("\n⚠️  VK_GROUP_ID не задан — пропускаю тест группы")
 
-    test_user_token("VK_ACCESS_TOKEN", (os.getenv("VK_ACCESS_TOKEN") or "").strip(), peer_id)
-    test_user_token("VK_USER_TOKEN",   (os.getenv("VK_USER_TOKEN") or "").strip(), peer_id)
+    test_user_token("VK_ACCESS_TOKEN", VK_ACCESS_TOKEN, peer_id)
 
     print("\n" + "=" * 60)
     print("НУЖНО: чтобы у VK_GROUP_TOKEN было ✅ на все три пункта.")

@@ -30,14 +30,13 @@ def init_dbs():
             )
         """)
     with sqlite3.connect(DB_GROUPS) as conn:
-        conn.execute("""
+        conn.execute(f"""
             CREATE TABLE IF NOT EXISTS groups (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 group_id INTEGER UNIQUE,
-                access_token TEXT,
                 active INTEGER DEFAULT 1,
-                daily_limit INTEGER DEFAULT 6,
+                daily_limit INTEGER DEFAULT {DAILY_LIMIT_DEFAULT},
                 last_posted_ts INTEGER DEFAULT 0
             )
         """)
@@ -133,12 +132,12 @@ def mark_as_error(video_id, error_msg):
         """, (error_msg, video_id))
 
 # ---------- groups ----------
-def add_group(name, group_id, access_token, daily_limit=6):
+def add_group(name, group_id, daily_limit=DAILY_LIMIT_DEFAULT):
     with sqlite3.connect(DB_GROUPS) as conn:
         conn.execute("""
-            INSERT OR REPLACE INTO groups (name, group_id, access_token, daily_limit, last_posted_ts)
-            VALUES (?, ?, ?, ?, 0)
-        """, (name, group_id, access_token, daily_limit))
+            INSERT OR REPLACE INTO groups (name, group_id, daily_limit, last_posted_ts)
+            VALUES (?, ?, ?, 0)
+        """, (name, group_id, daily_limit))
 
 def get_active_groups():
     with sqlite3.connect(DB_GROUPS) as conn:

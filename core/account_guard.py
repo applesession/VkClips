@@ -12,12 +12,10 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Tuple
 
-from config.config import DATA_DIR, DB_QUEUE
+from config.config import DATA_DIR, DB_QUEUE, ACCOUNT_DAILY_LIMIT as DAILY_LIMIT, BLOCK_DAYS
 
 # -------- Настройки --------
 BLOCKED_FILE = DATA_DIR / "vk_blocked_until.txt"
-DAILY_LIMIT = 10       # максимум публикаций в сутки на один аккаунт
-BLOCK_DAYS = 5         # сколько дней отдыхаем после «user is blocked»
 
 
 # -------- Блокировка --------

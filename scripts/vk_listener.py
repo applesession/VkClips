@@ -9,7 +9,6 @@
     /status
 """
 
-import os
 import sys
 import time
 import logging
@@ -18,14 +17,11 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 import requests
-from dotenv import load_dotenv
-
-load_dotenv()
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from config.config import LOGS_DIR
+from config.config import LOGS_DIR, VK_GROUP_TOKEN, VK_GROUP_ID, VK_ADMIN_ID
 from core.db import init_dbs, get_active_groups, get_group_token
 from core.notifier import send_alert
 
@@ -371,9 +367,9 @@ def handle_command(cmd, token, peer_id):
 # ---------------------------------------------------------------------------
 def main():
     init_dbs()
-    token = (os.getenv("VK_GROUP_TOKEN") or "").strip()
-    gid_raw = (os.getenv("VK_GROUP_ID") or "").strip()
-    admin_raw = (os.getenv("VK_ADMIN_ID") or "").strip()
+    token = VK_GROUP_TOKEN
+    gid_raw = VK_GROUP_ID
+    admin_raw = VK_ADMIN_ID
 
     if not token:
         logger.error("VK_GROUP_TOKEN отсутствует")
