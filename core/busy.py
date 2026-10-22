@@ -1,5 +1,5 @@
 """
-Busy-флаг для синхронизации между процессами (loader vs token refresh).
+Busy-флаг загрузчика для отображения состояния в vk_listener.
 Файл-лок: есть файл → основа занята.
 """
 import time
@@ -36,20 +36,4 @@ def is_busy() -> bool:
         # Устаревший лок (упал процесс) — снимаем
         clear_busy()
         return False
-    return True
-
-
-def wait_until_idle(poll_interval: int = 30, stop_event=None,
-                    max_wait_seconds: int = 3600) -> bool:
-    """
-    Ждёт, пока busy-флаг снят. Возвращает True если дождались,
-    False если stop_event или превышен max_wait_seconds.
-    """
-    start = time.time()
-    while is_busy():
-        if stop_event is not None and stop_event.is_set():
-            return False
-        if time.time() - start > max_wait_seconds:
-            return False
-        time.sleep(poll_interval)
     return True

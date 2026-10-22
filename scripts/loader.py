@@ -31,7 +31,6 @@ from core.db import (
 )
 from core.processor import process_video
 from core.busy import set_busy, clear_busy
-from core.vk_auth import is_token_alive, force_refresh_token
 from core.account_guard import (
     is_blocked,
     mark_blocked,
@@ -492,15 +491,6 @@ def main():
         blocked_error = False
         try:
             group_token = get_group_token(group_id)
-
-            if not is_token_alive(group_token):
-                logger.warning("VK token dead before upload, refreshing...")
-                new_token = force_refresh_token(headless=True)
-                if new_token:
-                    group_token = new_token
-                    logger.info("VK token refreshed")
-                else:
-                    logger.error("Не удалось обновить VK-токен")
 
             vk_id, _ = upload_clip_to_vk(output_path, title, description, group_id, group_token)
         except VKBlockedError:

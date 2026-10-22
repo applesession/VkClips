@@ -1,0 +1,8 @@
+.env
+data/
+logs/
+temp/
+project_dump.txt
+.venv/
+__pycache__/
+*.pyc

@@ -147,23 +147,7 @@ def get_active_groups():
         return [dict(row) for row in cursor.fetchall()]
 
 def get_group_token(group_id):
-    """
-    Возвращает единый пользовательский токен из .env.
-    Читает .env каждый раз — чтобы видеть свежий токен после обновления
-    (без перезапуска процесса).
-    """
-    from pathlib import Path
-    try:
-        from config.config import ROOT_DIR
-        env_file = Path(ROOT_DIR) / ".env"
-        if env_file.exists():
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if line.startswith("VK_ACCESS_TOKEN="):
-                    return line.split("=", 1)[1].strip()
-    except Exception:
-        pass
-    # Fallback — значение, загруженное при старте
+    """Возвращает постоянный пользовательский токен из конфигурации."""
     from config.config import VK_ACCESS_TOKEN
     return VK_ACCESS_TOKEN
 

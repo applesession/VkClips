@@ -9,6 +9,3 @@ python-dotenv==1.0.1
 Pillow
 yt-dlp
 isodate==0.6.1
-
-# Браузер
-DrissionPage>=4.0.0

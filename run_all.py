@@ -22,7 +22,6 @@ RESTART_DELAY = 5
 
 # ДОБАВЛЕНО ДЛЯ CLEANER
 CLEANER_INTERVAL = 86400  # 24 часа
-TOKEN_REFRESH_INTERVAL = 22 * 3600  # 22ч
 
 
 import logging
@@ -151,130 +150,14 @@ def run_cleaner_sync():
 
 
 def ensure_vk_token() -> bool:
-    """
-    Гарантирует наличие рабочего VK-токена ДО старта loader/populator.
+    """Проверяет, что постоянный токен задан до запуска процессов."""
+    from config.config import VK_ACCESS_TOKEN
 
-    Порядок:
-      1. Токен из .env (если живой)         → готово
-      2. Headless-обновление (если профиль) → готово
-      3. Видимое окно (только если есть TTY)
-      4. Иначе — выход с инструкцией
-    """
-    try:
-        from core.vk_auth import (
-            get_valid_token, read_env_var, is_token_alive, has_browser_profile,
-        )
-    except ImportError as e:
-        log(f"[vk_auth] Модуль не найден: {e}")
-        return False
-
-    # ---- 1. Токен из .env ----
-    token = read_env_var("VK_ACCESS_TOKEN")
-    if token and is_token_alive(token):
-        log("[vk_auth] VK-токен из .env активен")
+    if VK_ACCESS_TOKEN.strip():
+        log("[vk_token] VK_ACCESS_TOKEN задан")
         return True
-
-    if token:
-        log("[vk_auth] Токен в .env просрочен")
-    else:
-        log("[vk_auth] Токен отсутствует в .env")
-
-    # ---- 2. Headless refresh (TTY не нужен) ----
-    if has_browser_profile():
-        log("[vk_auth] Профиль браузера найден — пробую headless-обновление...")
-        try:
-            new_token = get_valid_token(
-                headless=True,
-                force=True,
-                interactive_ok=False,
-            )
-            if new_token:
-                log("[vk_auth] ✅ Токен обновлён через headless")
-                return True
-            log("[vk_auth] Headless не справился (сессия браузера истекла?)")
-        except Exception as e:
-            log(f"[vk_auth] Ошибка headless: {e}")
-    else:
-        log("[vk_auth] Профиль браузера пуст или отсутствует")
-
-    # ---- 3. Интерактивный fallback (нужен TTY) ----
-    try:
-        interactive = sys.stdin is not None and sys.stdin.isatty()
-    except Exception:
-        interactive = False
-
-    if not interactive:
-        log("[vk_auth] ⚠️  Нет TTY — открыть окно для входа нельзя.")
-        log("[vk_auth]     Запусти в терминале (или в PyCharm: вкладка Terminal):")
-        log("[vk_auth]         python scripts/get_vk_token.py")
-        log("[vk_auth]     После этого повтори запуск run_all.py")
-        return False
-
-    log("[vk_auth] Открываю видимое окно для авторизации...")
-    try:
-        new_token = get_valid_token(
-            headless=False,
-            force=True,
-            interactive_ok=True,
-        )
-    except Exception as e:
-        log(f"[vk_auth] Ошибка интерактивного входа: {e}")
-        return False
-
-    if new_token:
-        log("[vk_auth] ✅ VK-токен получен, продолжаю запуск")
-        return True
-
-    log("[vk_auth] ❌ Не удалось получить токен")
+    log("[vk_token] VK_ACCESS_TOKEN отсутствует в окружении или .env")
     return False
-
-
-def token_refresh_loop(stop_event, interval=TOKEN_REFRESH_INTERVAL):
-    """
-    Фоновый поток v2: раз в `interval` секунд ВСЕГДА меняет VK-токен.
-    Перед сменой ждёт, пока loader освободится (busy-флаг снят).
-    Никогда не открывает видимое окно и не ждёт ввода.
-    """
-    try:
-        from core.vk_auth import force_refresh_token
-        from core.busy import wait_until_idle, is_busy
-    except ImportError as e:
-        log(f"[vk_auth] Модуль не найден, автообновление отключено: {e}")
-        return
-
-    while not stop_event.is_set():
-        # Ждём интервал (проверяя stop_event)
-        for _ in range(interval):
-            if stop_event.is_set():
-                return
-            time.sleep(1)
-
-        log("[vk_auth] Пришло время менять токен. Жду, пока loader освободится...")
-        if not wait_until_idle(poll_interval=30, stop_event=stop_event,
-                               max_wait_seconds=3600):
-            if stop_event.is_set():
-                return
-            log("[vk_auth] Ожидание idle превысило час — пропускаю цикл")
-            continue
-
-        # Небольшая пауза, чтобы loader точно не начал новую итерацию
-        time.sleep(5)
-        if stop_event.is_set():
-            return
-
-        if is_busy():
-            log("[vk_auth] Loader снова занят — откладываю смену токена")
-            continue
-
-        log("[vk_auth] Основа свободна, меняю токен...")
-        try:
-            token = force_refresh_token(headless=True)
-            if token:
-                log("[vk_auth] Токен успешно обновлён")
-            else:
-                log("[vk_auth] Не удалось обновить токен (нужен ручной вход: scripts/get_vk_token.py --force)")
-        except Exception as e:
-            log(f"[vk_auth] Ошибка смены токена: {e}")
 
 
 def main():
@@ -293,7 +176,7 @@ def main():
     update_ytdlp()
     if not ensure_vk_token():
         log("Не удалось подготовить VK-токен. Выход.")
-        log("Запусти: python scripts/get_vk_token.py")
+        log("Задай постоянный VK_ACCESS_TOKEN в .env или окружении")
         sys.exit(1)
 
     processes = {}
@@ -331,16 +214,6 @@ def main():
 
     start_all()
 
-    # Фоновое автообновление VK-токена каждые 12 часов
-    token_stop_event = threading.Event()
-    token_thread = threading.Thread(
-        target=token_refresh_loop,
-        args=(token_stop_event,),
-        daemon=True,
-    )
-    token_thread.start()
-    log("[vk_auth] Автообновление токена запущено (интервал 22ч)")
-
     last_cleaner_run = time.time()
 
     try:
@@ -375,10 +248,6 @@ def main():
 
     except KeyboardInterrupt:
         log("Stopping orchestrator...")
-        try:
-            token_stop_event.set()
-        except NameError:
-            pass
         for name, proc in processes.items():
             log(f"Terminating {name}...")
             proc.terminate()
